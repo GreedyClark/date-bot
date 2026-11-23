@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Куди підемо?</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Unbounded:wght@700;800&display=swap">
+<style>
+:root{--paper:#fff4f8;--plum:#3d1a3f;--plum-2:#6b3e6c;--rose:#ff4f7e;--rose-soft:#ffd9e4;--butter:#ffd25e;--butter-soft:#fff0c2;--mist:#e9dfe8;--white:#fff}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--plum);font:16px/1.5 "Manrope",system-ui,sans-serif}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--rose);outline-offset:2px}
+#root{max-width:560px;margin:0 auto;padding:28px 18px 120px}
+.hero{margin-bottom:22px}
+.hero h1{font-family:"Unbounded",sans-serif;font-weight:800;font-size:clamp(34px,10vw,48px);line-height:.95;letter-spacing:-.02em;margin:0}
+.hero p{margin:10px 0 0;color:var(--plum-2);max-width:34ch}
+h2{font-family:"Unbounded",sans-serif;font-weight:700;font-size:18px;margin:30px 0 12px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--plum-2);margin:0 0 14px}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+.dot.l{background:var(--rose)}.dot.o{background:var(--butter)}.dot.n{background:var(--mist)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:360px){.grid{grid-template-columns:repeat(2,1fr)}}
+.tile{position:relative;border:0;background:var(--white);border-radius:18px;padding:14px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;min-height:96px;transition:transform .12s,background .15s;box-shadow:inset 0 0 0 1.5px var(--mist)}
+.tile:active{transform:scale(.96)}
+.tile .em{font-size:30px;line-height:1}
+.tile .nm{font-size:12.5px;line-height:1.2;text-align:center;font-weight:600}
+.tile.l{background:var(--rose);color:var(--white);box-shadow:none}
+.tile.o{background:var(--butter);box-shadow:none}
+.tile.n{background:var(--mist);color:var(--plum-2);box-shadow:none}
+.tile.n .em{filter:grayscale(1);opacity:.5}
+.tile .badge{position:absolute;top:6px;right:8px;font-size:11px;font-weight:800}
+.field{margin-top:18px}
+.field label{display:block;font-weight:700;margin-bottom:6px}
+textarea,input{width:100%;font:inherit;color:var(--plum);background:var(--white);border:0;box-shadow:inset 0 0 0 1.5px var(--mist);border-radius:14px;padding:12px 14px}
+textarea{min-height:76px;resize:vertical}
+.btn{border:0;border-radius:999px;padding:14px 20px;font-weight:800;cursor:pointer;background:var(--plum);color:var(--white)}
+.btn.rose{background:var(--rose)}
+.btn.line{background:transparent;box-shadow:inset 0 0 0 2px currentColor}
+.btn.wide{width:100%}
+.nav{position:fixed;left:0;right:0;bottom:0;background:var(--plum);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:4px;z-index:10}
+.nav button{flex:1;max-width:130px;border:0;background:transparent;color:#cdb6cc;border-radius:14px;padding:6px 4px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.nav button .i{font-size:20px}
+.nav button.on{color:var(--white);background:rgba(255,255,255,.1)}
+.filters{display:grid;gap:10px}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{border:0;background:var(--white);box-shadow:inset 0 0 0 1.5px var(--mist);border-radius:999px;padding:8px 14px;font-size:14px;font-weight:600;cursor:pointer}
+.pill.on{background:var(--plum);color:var(--white);box-shadow:none}
+.flabel{font-size:13px;color:var(--plum-2);margin-bottom:6px}
+.ticket{margin:22px 0 10px;display:flex;filter:drop-shadow(0 10px 22px rgba(255,79,126,.3));animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:rotate(-4deg) scale(.9);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.ticket{animation:none}}
+.ticket .main{flex:1;background:var(--rose);color:var(--white);border-radius:20px 0 0 20px;padding:20px 18px;-webkit-mask:radial-gradient(circle at 100% 0,transparent 12px,#000 12.5px) top/100% 51% no-repeat,radial-gradient(circle at 100% 100%,transparent 12px,#000 12.5px) bottom/100% 51% no-repeat;mask:radial-gradient(circle at 100% 0,transparent 12px,#000 12.5px) top/100% 51% no-repeat,radial-gradient(circle at 100% 100%,transparent 12px,#000 12.5px) bottom/100% 51% no-repeat}
+.ticket .stub{width:86px;background:var(--butter);border-radius:0 20px 20px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-left:3px dashed var(--rose);-webkit-mask:radial-gradient(circle at 0 0,transparent 12px,#000 12.5px) top/100% 51% no-repeat,radial-gradient(circle at 0 100%,transparent 12px,#000 12.5px) bottom/100% 51% no-repeat;mask:radial-gradient(circle at 0 0,transparent 12px,#000 12.5px) top/100% 51% no-repeat,radial-gradient(circle at 0 100%,transparent 12px,#000 12.5px) bottom/100% 51% no-repeat}
+.stub .em{font-size:36px}
+.stub .b{font-family:"Unbounded",sans-serif;font-weight:800;font-size:14px}
+.ticket .cat{font-size:13px;font-weight:700;opacity:.85}
+.ticket .t{font-family:"Unbounded",sans-serif;font-weight:700;font-size:21px;line-height:1.15;margin:6px 0 10px}
+.ticket .m{font-size:13.5px;opacity:.9}
+.ticket input{margin-top:12px;background:rgba(255,255,255,.18);color:var(--white);box-shadow:none;padding:9px 12px;color-scheme:dark}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.note{background:var(--butter-soft);border-radius:18px;padding:14px 16px;margin-bottom:14px}
+.note b{font-family:"Unbounded",sans-serif;font-weight:700}
+.her{background:var(--white);border-radius:18px;padding:16px;box-shadow:inset 0 0 0 1.5px var(--mist);margin-bottom:18px}
+.her .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.her .tag{background:var(--rose-soft);color:var(--plum);border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600}
+.her p{margin:12px 0 0;font-size:14px}
+.her p span{color:var(--plum-2)}
+.empty{color:var(--plum-2);font-size:14px;padding:6px 0}
+.list{background:var(--white);border-radius:18px;box-shadow:inset 0 0 0 1.5px var(--mist);padding:4px 16px}
+.item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1.5px solid var(--mist)}
+.item:last-child{border-bottom:0}
+.item .d{width:46px;text-align:center;font-family:"Unbounded",sans-serif;font-weight:700;line-height:1.05}
+.item .d small{display:block;font-family:"Manrope",sans-serif;font-size:11px;font-weight:700;color:var(--plum-2)}
+.item .tt{flex:1;font-weight:600}
+.item.up .d{color:var(--rose)}
+.x{border:0;background:transparent;color:var(--plum-2);font-size:22px;cursor:pointer;padding:4px 8px}
+.add{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:10px}
+.add.stack input:first-child{grid-column:1/-1}
+.code{display:block;word-break:break-all;font-size:12px;background:var(--white);border-radius:14px;padding:12px;margin:10px 0;max-height:100px;overflow:auto;box-shadow:inset 0 0 0 1.5px var(--mist)}
+.toast{position:fixed;left:50%;bottom:140px;transform:translateX(-50%) translateY(10px);background:var(--plum);color:var(--white);padding:10px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;max-width:90vw;text-align:center;z-index:20}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.banner{background:var(--plum);color:var(--white);border-radius:18px;padding:16px;margin-bottom:18px}
+.banner p{margin:0 0 12px}
+.banner .btn{background:var(--butter);color:var(--plum)}
+.weather{font-size:14px;color:var(--plum-2);margin:14px 0 0}
+.weather.bad{color:var(--rose);font-weight:700}
+.rate{display:flex;gap:4px}
+.rate button{border:0;background:var(--paper);border-radius:999px;padding:4px 10px;font-size:16px;cursor:pointer}
+.rate button.on{background:var(--butter)}
+.wish{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1.5px solid var(--mist)}
+.wish:last-child{border-bottom:0}
+.wish .tt{flex:1}
+.wish small{display:block;color:var(--plum-2);font-size:12px}
+.loading{padding:60px 0;text-align:center;color:var(--plum-2)}
+.error{background:var(--rose-soft);border-radius:18px;padding:16px;margin-top:20px}
+</style>
+</head>
+<body>
+<div id="root"><div class="loading">Завантажую…</div></div>
+<div class="toast" id="toast" role="status"></div>
+{{ categories|json_script:"cats" }}
+<script>
+const CATS = JSON.parse(document.getElementById("cats").textContent);
+const BUDGET = ["", "₴", "₴₴", "₴₴₴"];
+const WHERE = {in: "у приміщенні", out: "надворі"};
+const TIME = {short: "1–3 години", evening: "на вечір", day: "на весь день"};
+const MARK = {2: "❤", 1: "ок", 0: "ні"};
+const tg = window.Telegram && window.Telegram.WebApp;
+const initData = tg ? tg.initData : "";
+
+let S = null, tab = "plan", f = {budget: 3, where: "any", time: "any"}, current = null, pickWeather = null, busy = false;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const catOf = id => CATS.find(c => c[0] === id);
+
+function toast(t) {
+  const el = $("#toast");
+  el.textContent = t;
+  el.classList.add("show");
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => el.classList.remove("show"), 2400);
+}
+
+async function call(method, url, data) {
+  const opts = {method, headers: {"X-Init-Data": initData}};
+  if (data !== undefined) {
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(data);
+  }
+  const resp = await fetch(url, opts);
+  const json = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new Error(json.error || "Сервер не відповів. Спробуй ще раз");
+  return json;
+}
+
+async function load() {
+  S = await call("GET", "/api/state/");
+  if (S.partner && tab === "share") tab = "plan";
+  render();
+}
+
+function today() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+function fmtDate(s) {
+  return new Date(s + "T12:00").toLocaleDateString("uk-UA", {day: "numeric", month: "long", weekday: "short"});
+}
+function partnerName() {
+  return S.partner ? esc(S.partner.name || "Половинка") : "";
+}
+
+function pills(name, opts) {
+  return '<div class="pills">' + opts.map(([v, t]) =>
+    '<button class="pill' + (String(f[name]) === String(v) ? " on" : "") + '" data-f="' + name + '" data-v="' + v + '">' + t + '</button>').join("") + '</div>';
+}
+
+function inviteBanner() {
+  if (S.partner) return "";
+  return '<div class="banner"><p>Ти поки сам. Надішли посилання своїй половинці, і бот з\'єднає вас у пару.</p>' +
+    '<button class="btn" id="share">Надіслати запрошення</button></div>';
+}
+
+function viewPrefs() {
+  const cls = {2: "l", 1: "o", 0: "n"};
+  return '<div class="hero"><h1>Що тобі до душі?</h1><p>Твої відмітки бачить ' + (S.partner ? partnerName() : "твоя половинка") + ' і за ними підбирає побачення.</p></div>' +
+    '<div class="legend"><span><i class="dot l"></i>1 раз: обожнюю</span><span><i class="dot o"></i>2 рази: можна</span><span><i class="dot n"></i>3 рази: не моє</span></div>' +
+    '<div class="grid">' + CATS.map(([id, em, nm]) => {
+      const v = S.my_prefs[id];
+      const has = v !== undefined;
+      return '<button class="tile ' + (has ? cls[v] : "") + '" data-c="' + id + '" aria-label="' + nm + (has ? ": " + MARK[v] : "") + '">' +
+        (has ? '<span class="badge">' + MARK[v] + '</span>' : "") + '<span class="em">' + em + '</span><span class="nm">' + nm + '</span></button>';
+    }).join("") + '</div>';
+}
+
+function viewPlan() {
+  let h = '<div class="hero"><h1>Куди підемо?</h1><p>Обери умови, а я витягну квиток.</p></div>' + inviteBanner();
+  const past = S.dates.filter(d => d.date < today()).map(d => d.date).sort();
+  const upcoming = S.dates.some(d => d.date >= today());
+  if (past.length && !upcoming) {
+    const days = Math.floor((Date.now() - new Date(past[past.length - 1] + "T12:00")) / 864e5);
+    if (days >= 7) h += '<div class="note"><b>' + days + ' дн.</b> без побачення. Саме час щось запропонувати.</div>';
+  }
+  if (S.partner) {
+    const loves = CATS.filter(c => S.partner_prefs[c[0]] === 2);
+    h += '<div class="her"><b>' + partnerName() + ' обожнює</b><div class="tags">' +
+      (loves.length ? loves.map(c => '<span class="tag">' + c[1] + ' ' + c[2] + '</span>').join("") : '<span class="empty">поки нічого не відмічено</span>') + '</div>' +
+      (S.wishes.length ? '<p><span>У списку бажань:</span> ' + S.wishes.length + '</p>' : "") + '</div>';
+  }
+  h += '<div class="filters"><div><div class="flabel">Бюджет</div>' + pills("budget", [[1, "₴"], [2, "до ₴₴"], [3, "будь-який"]]) + '</div>' +
+    '<div><div class="flabel">Де</div>' + pills("where", [["any", "будь-де"], ["in", "в приміщенні"], ["out", "надворі"]]) + '</div>' +
+    '<div><div class="flabel">Час</div>' + pills("time", [["any", "будь-скільки"], ["short", "1–3 год"], ["evening", "вечір"], ["day", "день"]]) + '</div></div>';
+  if (current) {
+    const c = current.source === "wish" ? ["", "🌟", "Зі списку бажань"] : catOf(current.category);
+    const meta = current.source === "wish" ? "ваша спільна ідея" : TIME[current.time] + ", " + WHERE[current.where];
+    h += '<div class="ticket"><div class="main"><div class="cat">' + c[2] + '</div><div class="t">' + esc(current.title) + '</div><div class="m">' + meta + '</div>' +
+      '<input type="date" id="when" value="' + (current.date || S.next_saturday) + '" min="' + today() + '" aria-label="Дата"></div>' +
+      '<div class="stub"><span class="em">' + c[1] + '</span><span class="b">' + (current.budget ? BUDGET[current.budget] : "") + '</span></div></div>';
+    if (pickWeather && pickWeather.text) {
+      h += '<p class="weather' + (pickWeather.bad ? " bad" : "") + '">Прогноз: ' + esc(pickWeather.text) + (pickWeather.bad ? ". Ідеї надворі я відсунув." : "") + '</p>';
+    }
+    h += '<div class="actions" style="margin-top:12px"><button class="btn rose" id="pick">Інший квиток</button><button class="btn" id="invite">' + (S.partner ? "Запросити" : "Запланувати") + '</button></div>';
+  } else {
+    h += '<div style="margin-top:22px"><button class="btn rose wide" id="pick">Витягнути квиток</button></div>';
+  }
+  return h;
+}
+
+function viewWishes() {
+  return '<div class="hero"><h1>Хочемо спробувати</h1><p>Побачили місце в Instagram чи почули від друзів? Записуйте сюди. Ці ідеї теж потрапляють у квитки.</p></div>' +
+    '<div class="add"><input id="wishT" maxlength="300" placeholder="Кінний клуб під Києвом"><button class="btn" id="wishAdd">Додати</button></div>' +
+    '<h2>Список</h2><div class="list">' + (S.wishes.length ? S.wishes.map(w =>
+      '<div class="wish"><div class="tt">' + esc(w.text) + '<small>' + (w.mine ? "ти" : partnerName()) + '</small></div><button class="x" data-wdel="' + w.id + '" aria-label="Видалити">×</button></div>'
+    ).join("") : '<div class="empty">Тут поки порожньо.</div>') + '</div>';
+}
+
+function viewDates() {
+  const t = today();
+  const up = S.dates.filter(d => d.date >= t);
+  const past = S.dates.filter(d => d.date < t).reverse();
+  const row = (d, isUp) => {
+    const dt = new Date(d.date + "T12:00");
+    const rate = isUp ? "" : '<div class="rate"><button data-rate="1" data-id="' + d.id + '" class="' + (d.rating === 1 ? "on" : "") + '" aria-label="Сподобалось">👍</button><button data-rate="-1" data-id="' + d.id + '" class="' + (d.rating === -1 ? "on" : "") + '" aria-label="Так собі">👎</button></div>';
+    return '<div class="item' + (isUp ? " up" : "") + '"><div class="d">' + dt.getDate() + '<small>' + dt.toLocaleDateString("uk-UA", {month: "short"}) + '</small></div><div class="tt">' + esc(d.title) + '</div>' + rate +
+      '<button class="x" data-ddel="' + d.id + '" aria-label="Видалити">×</button></div>';
+  };
+  return '<div class="hero"><h1>Наші побачення</h1><p>Оцінюйте минулі. Я частіше пропонуватиму те, що сподобалось.</p></div>' +
+    '<h2>Попереду</h2><div class="list">' + (up.length ? up.map(d => row(d, true)).join("") : '<div class="empty">Нічого не заплановано. Витягни квиток на вкладці «Куди підемо».</div>') + '</div>' +
+    '<h2>Уже були</h2><div class="list">' + (past.length ? past.map(d => row(d, false)).join("") : '<div class="empty">Тут з\'являться побачення, які вже відбулися.</div>') + '</div>' +
+    '<h2>Додати своє</h2><div class="add stack"><input id="ownT" maxlength="300" placeholder="Що робили або плануєте"><input type="date" id="ownD" value="' + t + '" aria-label="Дата"><button class="btn" id="ownAdd">Додати</button></div>';
+}
+
+function render() {
+  const tabs = [["plan", "🎟️", "Куди підемо"], ["prefs", "💗", "Мій вибір"], ["wishes", "🌟", "Бажання"], ["dates", "📅", "Побачення"]];
+  const view = {plan: viewPlan, prefs: viewPrefs, wishes: viewWishes, dates: viewDates}[tab];
+  $("#root").innerHTML = view() + '<nav class="nav">' + tabs.map(([k, i, t]) =>
+    '<button class="' + (tab === k ? "on" : "") + '" data-tab="' + k + '"><span class="i">' + i + '</span>' + t + '</button>').join("") + '</nav>';
+}
+
+async function run(fn) {
+  if (busy) return;
+  busy = true;
+  try { await fn(); } catch (e) { toast(e.message); } finally { busy = false; }
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("button");
+  if (!t) return;
+  if (t.dataset.tab) { tab = t.dataset.tab; render(); window.scrollTo(0, 0); return; }
+  if (t.dataset.f) { f[t.dataset.f] = t.dataset.f === "budget" ? +t.dataset.v : t.dataset.v; current = null; render(); return; }
+  if (t.dataset.c) {
+    const id = t.dataset.c, v = S.my_prefs[id];
+    const next = v === undefined ? 2 : v === 2 ? 1 : v === 1 ? 0 : null;
+    if (next === null) delete S.my_prefs[id]; else S.my_prefs[id] = next;
+    render();
+    call("POST", "/api/prefs/", {category: id, level: next}).catch(err => toast(err.message));
+    return;
+  }
+  if (t.dataset.wdel) { run(async () => { await call("POST", "/api/wishes/" + t.dataset.wdel + "/delete/", {}); await load(); toast("Видалено"); }); return; }
+  if (t.dataset.ddel) { run(async () => { await call("POST", "/api/dates/" + t.dataset.ddel + "/delete/", {}); await load(); toast("Видалено"); }); return; }
+  if (t.dataset.rate) {
+    const d = S.dates.find(x => String(x.id) === t.dataset.id);
+    const r = d.rating === +t.dataset.rate ? null : +t.dataset.rate;
+    run(async () => { await call("POST", "/api/dates/" + d.id + "/rate/", {rating: r}); d.rating = r; render(); toast(r ? "Оцінку збережено" : "Оцінку прибрано"); });
+    return;
+  }
+  switch (t.id) {
+    case "share":
+      if (tg && tg.openTelegramLink) tg.openTelegramLink("https://t.me/share/url?url=" + encodeURIComponent(S.invite_link) + "&text=" + encodeURIComponent("Давай плануватимемо побачення разом"));
+      break;
+    case "pick":
+      run(async () => {
+        const date = $("#when") ? $("#when").value : S.next_saturday;
+        const r = await call("POST", "/api/pick/", {...f, date, exclude: current ? current.title : null});
+        if (!r.idea) { toast("Під ці умови нічого немає. Збільш бюджет або обери «будь-скільки»"); return; }
+        current = {...r.idea, date};
+        pickWeather = {text: r.weather, bad: r.bad_weather};
+        render();
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+      });
+      break;
+    case "invite":
+      run(async () => {
+        await call("POST", "/api/dates/", {title: current.title, date: $("#when").value || S.next_saturday, category: current.category, wish_id: current.wish_id || null});
+        current = null;
+        tab = "dates";
+        await load();
+        toast(S.partner ? "Запрошення надіслано" : "Заплановано");
+      });
+      break;
+    case "wishAdd": {
+      const text = $("#wishT").value.trim();
+      if (!text) { toast("Напиши, що саме хочеш"); break; }
+      run(async () => { await call("POST", "/api/wishes/", {text}); await load(); toast("Додано до списку"); });
+      break;
+    }
+    case "ownAdd": {
+      const title = $("#ownT").value.trim();
+      if (!title) { toast("Напиши, що саме"); break; }
+      run(async () => { await call("POST", "/api/dates/", {title, date: $("#ownD").value}); await load(); toast("Додано"); });
+      break;
+    }
+  }
+});
+
+document.addEventListener("change", e => {
+  if (e.target.id === "when" && current) {
+    current.date = e.target.value;
+    run(async () => {
+      const r = await call("POST", "/api/pick/", {...f, date: current.date, exclude: null});
+      pickWeather = {text: r.weather, bad: r.bad_weather};
+      render();
+    });
+  }
+});
+
+if (tg) { tg.ready(); tg.expand(); }
+if (!initData) {
+  $("#root").innerHTML = '<div class="hero"><h1>Куди підемо?</h1></div><div class="error">Відкрий цю сторінку через бота в Telegram.</div>';
+} else {
+  load().catch(e => { $("#root").innerHTML = '<div class="error">' + esc(e.message) + '</div>'; });
+}
+</script>
+</body>
+</html>
