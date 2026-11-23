@@ -15,6 +15,11 @@ HELP = (
     "/leave — вийти з пари"
 )
 
+PARTNER_HELP = (
+    "Тут ти відмічаєш, що тобі до душі, і записуєш, що давно хочеш спробувати. "
+    "Запрошення на побачення приходитимуть сюди."
+)
+
 
 def handle_update(update):
     message = update.get("message")
@@ -30,6 +35,8 @@ def handle_update(update):
 
     if command == "/start":
         start(chat_id, member, created, arg.strip())
+    elif not member.is_planner and command != "/leave":
+        tg.send_message(chat_id, PARTNER_HELP, tg.app_button("Мої вподобання"))
     elif command == "/app":
         tg.send_message(chat_id, "Тисни кнопку нижче.", tg.app_button())
     elif command == "/idea":
@@ -58,10 +65,13 @@ def start(chat_id, member, created, code):
             tg.send_message(chat_id, str(exc))
             return
         partner = couple.members.exclude(pk=member.pk).first()
-        tg.send_message(chat_id, f"Готово, ви з {html.escape(partner.name)} тепер пара. Відміть, що тобі подобається.", tg.app_button())
+        tg.send_message(chat_id, f"Готово, ви з {html.escape(partner.name)} тепер пара. {PARTNER_HELP}", tg.app_button("Відмітити вподобання"))
         tg.send_message(partner.telegram_id, f"{html.escape(member.name)} тепер з тобою в парі. Загляньте в застосунок.", tg.app_button())
         return
     greeting = "Привіт!" if created else "З поверненням!"
+    if not member.is_planner:
+        tg.send_message(chat_id, f"{greeting} {PARTNER_HELP}", tg.app_button("Мої вподобання"))
+        return
     tg.send_message(chat_id, f"{greeting} {HELP}", tg.app_button())
     if not member.partner:
         send_invite(chat_id, member)
@@ -96,7 +106,7 @@ def send_ideas(member):
 
 def weekly_reminders():
     sent = 0
-    for member in Member.objects.filter(reminders=True).select_related("couple"):
+    for member in Member.objects.filter(reminders=True, is_planner=True).select_related("couple"):
         if not member.partner:
             continue
         send_ideas(member)

@@ -40,7 +40,7 @@ textarea,input{width:100%;font:inherit;color:var(--plum);background:var(--white)
 textarea{min-height:76px;resize:vertical}
 .btn{border:0;border-radius:999px;padding:14px 20px;font-weight:800;cursor:pointer;background:var(--plum);color:var(--white)}
 .btn.rose{background:var(--rose)}
-.btn.line{background:transparent;box-shadow:inset 0 0 0 2px currentColor}
+.btn.line{background:transparent;color:var(--plum);box-shadow:inset 0 0 0 2px var(--plum)}
 .btn.wide{width:100%}
 .nav{position:fixed;left:0;right:0;bottom:0;background:var(--plum);padding:8px 10px calc(8px + env(safe-area-inset-bottom));display:flex;justify-content:center;gap:4px;z-index:10}
 .nav button{flex:1;max-width:130px;border:0;background:transparent;color:#cdb6cc;border-radius:14px;padding:6px 4px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
@@ -113,7 +113,7 @@ const MARK = {2: "❤", 1: "ок", 0: "ні"};
 const tg = window.Telegram && window.Telegram.WebApp;
 const initData = tg ? tg.initData : "";
 
-let S = null, tab = "plan", f = {budget: 3, where: "any", time: "any"}, current = null, pickWeather = null, busy = false;
+let S = null, composing = false, tab = "plan", f = {budget: 3, where: "any", time: "any"}, current = null, pickWeather = null, busy = false;
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
@@ -141,7 +141,7 @@ async function call(method, url, data) {
 
 async function load() {
   S = await call("GET", "/api/state/");
-  if (S.partner && tab === "share") tab = "plan";
+  if (!S.me.is_planner && !["prefs", "wishes"].includes(tab)) tab = "prefs";
   render();
 }
 
@@ -157,6 +157,18 @@ function partnerName() {
   return S.partner ? esc(S.partner.name || "Половинка") : "";
 }
 
+const OPENERS = ["Привіт!", "Слухай!", "Маю ідею!", "Є пропозиція."];
+const ASKS = ["Підеш зі мною?", "Як тобі?", "Що скажеш?", "Ти як, за?"];
+function draft() {
+  if (current.draft) return current.draft;
+  const d = new Date((current.date || S.next_saturday) + "T12:00");
+  const when = d.toLocaleDateString("uk-UA", {weekday: "long", day: "numeric", month: "long"});
+  const what = current.title.charAt(0).toLowerCase() + current.title.slice(1);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  current.draft = pick(OPENERS) + " " + when.charAt(0).toUpperCase() + when.slice(1) + ": " + what + ". " + pick(ASKS);
+  return current.draft;
+}
+
 function pills(name, opts) {
   return '<div class="pills">' + opts.map(([v, t]) =>
     '<button class="pill' + (String(f[name]) === String(v) ? " on" : "") + '" data-f="' + name + '" data-v="' + v + '">' + t + '</button>').join("") + '</div>';
@@ -170,7 +182,10 @@ function inviteBanner() {
 
 function viewPrefs() {
   const cls = {2: "l", 1: "o", 0: "n"};
-  return '<div class="hero"><h1>Що тобі до душі?</h1><p>Твої відмітки бачить ' + (S.partner ? partnerName() : "твоя половинка") + ' і за ними підбирає побачення.</p></div>' +
+  const intro = S.me.is_planner
+    ? 'Твої відмітки бачить ' + (S.partner ? partnerName() : "твоя половинка") + '.'
+    : partnerName() + ' дивитиметься сюди, коли плануватиме побачення. Запрошення прийдуть у чат з ботом.';
+  return '<div class="hero"><h1>Що тобі до душі?</h1><p>' + intro + '</p></div>' +
     '<div class="legend"><span><i class="dot l"></i>1 раз: обожнюю</span><span><i class="dot o"></i>2 рази: можна</span><span><i class="dot n"></i>3 рази: не моє</span></div>' +
     '<div class="grid">' + CATS.map(([id, em, nm]) => {
       const v = S.my_prefs[id];
@@ -206,7 +221,13 @@ function viewPlan() {
     if (pickWeather && pickWeather.text) {
       h += '<p class="weather' + (pickWeather.bad ? " bad" : "") + '">Прогноз: ' + esc(pickWeather.text) + (pickWeather.bad ? ". Ідеї надворі я відсунув." : "") + '</p>';
     }
-    h += '<div class="actions" style="margin-top:12px"><button class="btn rose" id="pick">Інший квиток</button><button class="btn" id="invite">' + (S.partner ? "Запросити" : "Запланувати") + '</button></div>';
+    if (composing) {
+      h += '<div class="field"><label for="msg">Твоє запрошення</label><textarea id="msg" maxlength="2000" style="min-height:130px">' + esc(draft()) + '</textarea>' +
+        '<p class="small" style="color:var(--plum-2);font-size:13px;margin:6px 0 0">Це лише чернетка. Перепиши своїми словами, ' + partnerName() + ' отримає саме цей текст.</p></div>' +
+        '<div class="actions" style="margin-top:12px"><button class="btn line" id="cancelMsg">Назад</button><button class="btn" id="send">Надіслати</button></div>';
+    } else {
+      h += '<div class="actions" style="margin-top:12px"><button class="btn rose" id="pick">Інший квиток</button><button class="btn" id="invite">' + (S.partner ? "Запросити" : "Запланувати") + '</button></div>';
+    }
   } else {
     h += '<div style="margin-top:22px"><button class="btn rose wide" id="pick">Витягнути квиток</button></div>';
   }
@@ -214,7 +235,10 @@ function viewPlan() {
 }
 
 function viewWishes() {
-  return '<div class="hero"><h1>Хочемо спробувати</h1><p>Побачили місце в Instagram чи почули від друзів? Записуйте сюди. Ці ідеї теж потрапляють у квитки.</p></div>' +
+  const intro = S.me.is_planner
+    ? 'Побачили місце в Instagram чи почули від друзів? Записуйте сюди. Ці ідеї теж потрапляють у квитки.'
+    : 'Побачила місце в Instagram чи почула від подруг? Запиши сюди, і ' + partnerName() + ' про це дізнається.';
+  return '<div class="hero"><h1>' + (S.me.is_planner ? "Хочемо спробувати" : "Хочу спробувати") + '</h1><p>' + intro + '</p></div>' +
     '<div class="add"><input id="wishT" maxlength="300" placeholder="Кінний клуб під Києвом"><button class="btn" id="wishAdd">Додати</button></div>' +
     '<h2>Список</h2><div class="list">' + (S.wishes.length ? S.wishes.map(w =>
       '<div class="wish"><div class="tt">' + esc(w.text) + '<small>' + (w.mine ? "ти" : partnerName()) + '</small></div><button class="x" data-wdel="' + w.id + '" aria-label="Видалити">×</button></div>'
@@ -238,7 +262,9 @@ function viewDates() {
 }
 
 function render() {
-  const tabs = [["plan", "🎟️", "Куди підемо"], ["prefs", "💗", "Мій вибір"], ["wishes", "🌟", "Бажання"], ["dates", "📅", "Побачення"]];
+  const tabs = S.me.is_planner
+    ? [["plan", "🎟️", "Куди підемо"], ["prefs", "💗", "Мій вибір"], ["wishes", "🌟", "Бажання"], ["dates", "📅", "Побачення"]]
+    : [["prefs", "💗", "Мій вибір"], ["wishes", "🌟", "Хочу спробувати"]];
   const view = {plan: viewPlan, prefs: viewPrefs, wishes: viewWishes, dates: viewDates}[tab];
   $("#root").innerHTML = view() + '<nav class="nav">' + tabs.map(([k, i, t]) =>
     '<button class="' + (tab === k ? "on" : "") + '" data-tab="' + k + '"><span class="i">' + i + '</span>' + t + '</button>').join("") + '</nav>';
@@ -254,7 +280,7 @@ document.addEventListener("click", e => {
   const t = e.target.closest("button");
   if (!t) return;
   if (t.dataset.tab) { tab = t.dataset.tab; render(); window.scrollTo(0, 0); return; }
-  if (t.dataset.f) { f[t.dataset.f] = t.dataset.f === "budget" ? +t.dataset.v : t.dataset.v; current = null; render(); return; }
+  if (t.dataset.f) { f[t.dataset.f] = t.dataset.f === "budget" ? +t.dataset.v : t.dataset.v; current = null; composing = false; render(); return; }
   if (t.dataset.c) {
     const id = t.dataset.c, v = S.my_prefs[id];
     const next = v === undefined ? 2 : v === 2 ? 1 : v === 1 ? 0 : null;
@@ -287,14 +313,23 @@ document.addEventListener("click", e => {
       });
       break;
     case "invite":
-      run(async () => {
-        await call("POST", "/api/dates/", {title: current.title, date: $("#when").value || S.next_saturday, category: current.category, wish_id: current.wish_id || null});
-        current = null;
-        tab = "dates";
-        await load();
-        toast(S.partner ? "Запрошення надіслано" : "Заплановано");
-      });
+      current.date = $("#when").value || S.next_saturday;
+      if (!S.partner) { saveDate(""); break; }
+      composing = true;
+      render();
+      $("#msg").focus();
       break;
+    case "cancelMsg":
+      current.draft = $("#msg").value;
+      composing = false;
+      render();
+      break;
+    case "send": {
+      const text = $("#msg").value.trim();
+      if (!text) { toast("Напиши хоч кілька слів"); break; }
+      saveDate(text);
+      break;
+    }
     case "wishAdd": {
       const text = $("#wishT").value.trim();
       if (!text) { toast("Напиши, що саме хочеш"); break; }
@@ -308,6 +343,21 @@ document.addEventListener("click", e => {
       break;
     }
   }
+});
+
+function saveDate(message) {
+  run(async () => {
+    await call("POST", "/api/dates/", {title: current.title, date: current.date, category: current.category, wish_id: current.wish_id || null, message});
+    current = null;
+    composing = false;
+    tab = "dates";
+    await load();
+    toast(message ? "Запрошення надіслано" : "Заплановано");
+  });
+}
+
+document.addEventListener("input", e => {
+  if (e.target.id === "msg" && current) current.draft = e.target.value;
 });
 
 document.addEventListener("change", e => {

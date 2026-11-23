@@ -21,6 +21,7 @@ class Member(models.Model):
     name = models.CharField(max_length=128, blank=True)
     couple = models.ForeignKey(Couple, on_delete=models.CASCADE, related_name="members")
     reminders = models.BooleanField(default=True)
+    is_planner = models.BooleanField(default=True)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

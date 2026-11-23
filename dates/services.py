@@ -36,7 +36,9 @@ def join_couple(member, code):
     if old.members.count() > 1:
         raise JoinError("Ти вже в парі. Спершу вийди з неї командою /leave.")
     member.couple = target
-    member.save(update_fields=["couple"])
+    member.is_planner = False
+    member.reminders = False
+    member.save(update_fields=["couple", "is_planner", "reminders"])
     old.delete()
     return target
 
@@ -46,5 +48,6 @@ def leave_couple(member):
     if member.couple.members.count() < 2:
         return False
     member.couple = Couple.objects.create()
-    member.save(update_fields=["couple"])
+    member.is_planner = True
+    member.save(update_fields=["couple", "is_planner"])
     return True

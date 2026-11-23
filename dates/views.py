@@ -67,6 +67,15 @@ def telegram_user(view):
     return csrf_exempt(wrapper)
 
 
+def planner_only(view):
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if not request.member.is_planner:
+            return JsonResponse({"error": "Ця дія доступна лише тому, хто планує побачення"}, status=403)
+        return view(request, *args, **kwargs)
+    return wrapper
+
+
 def body(request):
     try:
         return json.loads(request.body or "{}")
@@ -90,7 +99,7 @@ def state_json(member):
     couple = member.couple
     ctx = pick_context(member)
     return {
-        "me": {"name": member.name, "reminders": member.reminders},
+        "me": {"name": member.name, "reminders": member.reminders, "is_planner": member.is_planner},
         "partner": {"name": partner.name} if partner else None,
         "invite_link": None if partner else tg.invite_link(couple.invite_code),
         "my_prefs": prefs_of(member),
@@ -135,8 +144,8 @@ def api_wish_add(request):
         return JsonResponse({"error": "Напиши, що саме хочеш"}, status=400)
     wish = Wish.objects.create(couple=request.member.couple, author=request.member, text=text)
     partner = request.member.partner
-    if partner:
-        tg.send_message(partner.telegram_id, f"{html.escape(request.member.name)} додає бажання: {html.escape(text)}")
+    if partner and partner.is_planner:
+        tg.send_message(partner.telegram_id, f"{html.escape(request.member.name)} хоче спробувати: {html.escape(text)}")
     return JsonResponse({"id": wish.id})
 
 
@@ -149,6 +158,7 @@ def api_wish_delete(request, wish_id):
 
 @require_POST
 @telegram_user
+@planner_only
 def api_pick(request):
     data = body(request)
     day = parse_day(data.get("date")) or next_saturday()
@@ -168,6 +178,7 @@ def api_pick(request):
 
 @require_POST
 @telegram_user
+@planner_only
 def api_date_add(request):
     data = body(request)
     title = str(data.get("title", "")).strip()[:300]
@@ -179,14 +190,16 @@ def api_date_add(request):
     event = DateEvent.objects.create(couple=couple, title=title, category=category, date=day, from_wish=bool(data.get("wish_id")))
     if data.get("wish_id"):
         Wish.objects.filter(pk=data["wish_id"], couple=couple).delete()
+    message = str(data.get("message", "")).strip()[:2000]
     partner = request.member.partner
-    if partner:
-        tg.send_message(partner.telegram_id, f"{html.escape(request.member.name)} запрошує тебе {day.strftime('%d.%m')}: {html.escape(title)}", tg.app_button("Подивитися"))
+    if partner and message:
+        tg.send_message(partner.telegram_id, html.escape(message))
     return JsonResponse(event_json(event))
 
 
 @require_POST
 @telegram_user
+@planner_only
 def api_date_rate(request, event_id):
     rating = body(request).get("rating")
     if rating not in (1, -1, None):
@@ -197,6 +210,7 @@ def api_date_rate(request, event_id):
 
 @require_POST
 @telegram_user
+@planner_only
 def api_date_delete(request, event_id):
     DateEvent.objects.filter(pk=event_id, couple=request.member.couple).delete()
     return JsonResponse({"ok": True})

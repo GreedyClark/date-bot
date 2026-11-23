@@ -104,6 +104,9 @@ class CoupleTests(TestCase):
         join_couple(b, a.couple.invite_code)
         b.refresh_from_db()
         self.assertEqual(a.partner, b)
+        self.assertTrue(a.is_planner)
+        self.assertFalse(b.is_planner)
+        self.assertFalse(b.reminders)
         self.assertEqual(Couple.objects.count(), 1)
 
     def test_third_person_rejected(self):
@@ -160,8 +163,30 @@ class ApiTests(TestCase):
         wish_id = Wish.objects.get().id
         event = self.post("/api/dates/", {"title": "Кінний клуб", "date": "2026-11-28", "wish_id": wish_id}, 1).json()
         self.assertFalse(Wish.objects.exists())
-        self.post(f"/api/dates/{event['id']}/rate/", {"rating": 1}, 2)
+        self.post(f"/api/dates/{event['id']}/rate/", {"rating": 1}, 1)
         self.assertEqual(DateEvent.objects.get().rating, 1)
+
+        partner_state = self.client.get("/api/state/", **self.headers(2)).json()
+        self.assertFalse(partner_state["me"]["is_planner"])
+        self.assertEqual(self.post("/api/pick/", {}, 2).status_code, 403)
+        self.assertEqual(self.post("/api/dates/", {"title": "x", "date": "2026-11-28"}, 2).status_code, 403)
+
+    def test_partner_gets_only_invitation(self, tg_post, _):
+        tg_post.return_value.json.return_value = {"ok": True}
+        couple = Couple.objects.create()
+        Member.objects.create(telegram_id=1, name="Юрій", couple=couple)
+        Member.objects.create(telegram_id=2, name="Оля", couple=couple, is_planner=False, reminders=False)
+        self.post("/api/wishes/", {"text": "Каток"}, 1)
+        self.assertEqual(tg_post.call_count, 0)
+        self.post("/api/dates/", {"title": "Боулінг", "date": "2099-01-03"}, 1)
+        self.assertEqual(tg_post.call_count, 0)
+        self.post("/api/dates/", {"title": "Балет", "date": "2099-01-03", "message": "Підеш зі мною на <балет>?"}, 1)
+        self.assertEqual(tg_post.call_count, 1)
+        sent = tg_post.call_args.kwargs["json"]
+        self.assertEqual(sent["chat_id"], 2)
+        self.assertEqual(sent["text"], "Підеш зі мною на &lt;балет&gt;?")
+        self.post("/api/wishes/", {"text": "Кінний клуб"}, 2)
+        self.assertEqual(tg_post.call_args.kwargs["json"]["chat_id"], 1)
 
     def test_webhook_rejects_wrong_secret(self, *_):
         resp = self.client.post("/tg/webhook/", "{}", content_type="application/json", HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN="nope")
@@ -171,6 +196,6 @@ class ApiTests(TestCase):
         tg_post.return_value.json.return_value = {"ok": True}
         couple = Couple.objects.create()
         Member.objects.create(telegram_id=1, name="Ю", couple=couple)
-        Member.objects.create(telegram_id=2, name="О", couple=couple, reminders=False)
+        Member.objects.create(telegram_id=2, name="О", couple=couple, is_planner=False)
         resp = self.client.post("/cron/weekly/", HTTP_X_CRON_SECRET="cron")
         self.assertEqual(resp.json()["sent"], 1)
